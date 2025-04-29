@@ -1,55 +1,79 @@
-import os
-import random
-import string
-import platform
 import streamlit as st
-import numpy as np
-from PIL import Image as PILImage
-from keras.models import load_model
+import paho.mqtt.client as paho
+import time
+import json
+import platform
 
 # Mostrar la versión de Python
 st.write("Versión de Python:", platform.python_version())
 
-# Cargar modelo
-dir_path = os.path.dirname(__file__)
-model_path = os.path.join(dir_path, 'keras_model.h5')
-model = load_model(model_path)
+# Inicializar estado de tema
+def init_theme():
+    if 'theme' not in st.session_state:
+        st.session_state.theme = 'gray'
+init_theme()
+
+# Funciones MQTT callbacks
+def on_publish(client, userdata, result):
+    st.write("Dato publicado.")
+
+def on_message(client, userdata, message):
+    msg = message.payload.decode('utf-8')
+    st.write(f"Mensaje recibido: {msg}")
+
+# Configurar CSS según tema
+def set_theme_css():
+    if st.session_state.theme == 'light':
+        bg = '#FFFFFF'
+        fg = '#000000'
+    elif st.session_state.theme == 'dark':
+        bg = '#000000'
+        fg = '#FFFFFF'
+    else:  # gray
+        bg = '#DDDDDD'
+        fg = '#000000'
+    st.markdown(f"""
+    <style>
+        body {{ background-color: {bg}; color: {fg}; }}
+        .stButton > button {{ background-color: {fg}; color: {bg}; border: 1px solid {fg}; }}
+        .stSlider > div {{ color: {fg}; }}
+    </style>
+    """, unsafe_allow_html=True)
+
+# Aplicar estilo inicial
+set_theme_css()
 
 # Título
-st.title("Reconocimiento de Gestos de Mano")
+st.title("MQTT Control")
 
-with st.sidebar:
-    st.subheader("📷 Captura")
-    st.write("Usa la cámara para capturar el gesto de tu mano y el modelo predecirá si está abierta o cerrada.")
+# Crear cliente MQTT
+def mqtt_publish(topic, payload):
+    client = paho.Client()
+    client.on_publish = on_publish
+    client.connect("157.230.214.127", 1883)
+    client.publish(topic, json.dumps(payload))
 
-# Input de cámara
-img_buffer = st.camera_input("Toma una foto:")
+# Botones ON/OFF
+col1, col2 = st.columns(2)
+with col1:
+    if st.button('ON'):
+        st.session_state.theme = 'light'
+        set_theme_css()
+        mqtt_publish('LuzNicoRaw', {"Act1": "ON"})
+with col2:
+    if st.button('OFF'):
+        st.session_state.theme = 'dark'
+        set_theme_css()
+        mqtt_publish('LuzNicoRaw', {"Act1": "OFF"})
 
-if img_buffer is not None:
-    # Preprocesamiento de la imagen
-    img = PILImage.open(img_buffer).convert('RGB')
-    img = img.resize((224, 224))
-    img_array = np.array(img, dtype=np.float32)
-    normalized = (img_array / 127.5) - 1
-    data = normalized.reshape((1, 224, 224, 3))
+# Slider para valor analógico
+value = st.slider('Selecciona valor analógico', 0.0, 100.0, 50.0)
+st.write('Valor:', value)
 
-    # Predicción
-    prediction = model.predict(data)[0]
-    open_prob, closed_prob = prediction[0], prediction[1]
+# Enviar valor
+def send_analog():
+    mqtt_publish('MotorNicoRaw', {"Analog": float(value)})
+    st.write('Valor enviado.')
 
-    # Mostrar probabilidades
-    st.write(f"Probabilidad Mano Abierta: {open_prob:.2f}")
-    st.write(f"Probabilidad Mano Cerrada: {closed_prob:.2f}")
-
-    # Generar salida aleatoria
-    if open_prob > closed_prob:
-        # Mano abierta: letra aleatoria
-        letter = random.choice(string.ascii_uppercase)
-        st.header(f"✋ Mano Abierta → Letra: {letter}")
-    else:
-        # Mano cerrada: número aleatorio
-        number = random.randint(1, 100)
-        st.header(f"✊ Mano Cerrada → Número: {number}")
-
-    # Limpieza de archivos temporales (opcional)
-    # Aquí podrías eliminar imágenes temporales si las guardaste en disco
+if st.button('Enviar valor analógico'):
+    send_analog()
