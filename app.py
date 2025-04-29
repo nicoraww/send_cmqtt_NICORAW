@@ -49,6 +49,10 @@ def set_theme_css():
             color: {fg} !important;
             border: 1px solid {fg} !important;
         }}
+        .valor-text {{
+            font-weight: bold;
+            color: {fg} !important;
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -80,20 +84,18 @@ with t2:
 
 # Slider para valor analógico
 value = st.slider('Selecciona valor analógico', 0.0, 100.0, 50.0)
-st.write('Valor:', value)
+# Mostrar valor con clase para contraste
+st.markdown(f"<p class='valor-text'>Valor: {value}</p>", unsafe_allow_html=True)
 
 # Botón para enviar valor analógico
 if st.button('Enviar valor analógico'):
     mqtt_publish('MotorNicoRaw', {"Analog": float(value)})
-    st.write('Valor enviado.')
+    st.markdown(f"<p class='valor-text'>Valor enviado: {value}</p>", unsafe_allow_html=True)
     # Guardar en historial
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     st.session_state.history.append({"timestamp": timestamp, "value": value})
 
 # Mostrar historial de valores enviados
-if st.session_state.history:
-    st.subheader('Historial de valores analógicos enviados')
-    st.table(st.session_state.history)
 if st.session_state.history:
     st.subheader('Historial de valores analógicos enviados')
     st.table(st.session_state.history)
