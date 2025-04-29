@@ -1,77 +1,55 @@
-import paho.mqtt.client as paho
-import time
-import streamlit as st
-import json
+import os
+import random
+import string
 import platform
+import streamlit as st
+import numpy as np
+from PIL import Image as PILImage
+from keras.models import load_model
 
-# Muestra la versión de Python junto con detalles adicionales
+# Mostrar la versión de Python
 st.write("Versión de Python:", platform.python_version())
 
-values = 0.0
-act1="OFF"
+# Cargar modelo
+dir_path = os.path.dirname(__file__)
+model_path = os.path.join(dir_path, 'keras_model.h5')
+model = load_model(model_path)
 
-def on_publish(client,userdata,result):             #create function for callback
-    print("el dato ha sido publicado \n")
-    pass
+# Título
+st.title("Reconocimiento de Gestos de Mano")
 
-def on_message(client, userdata, message):
-    global message_received
-    time.sleep(2)
-    message_received=str(message.payload.decode("utf-8"))
-    st.write(message_received)
+with st.sidebar:
+    st.subheader("📷 Captura")
+    st.write("Usa la cámara para capturar el gesto de tu mano y el modelo predecirá si está abierta o cerrada.")
 
-        
+# Input de cámara
+img_buffer = st.camera_input("Toma una foto:")
 
+if img_buffer is not None:
+    # Preprocesamiento de la imagen
+    img = PILImage.open(img_buffer).convert('RGB')
+    img = img.resize((224, 224))
+    img_array = np.array(img, dtype=np.float32)
+    normalized = (img_array / 127.5) - 1
+    data = normalized.reshape((1, 224, 224, 3))
 
-broker="157.230.214.127"
-port=1883
-client1= paho.Client("NicoRaw")
-client1.on_message = on_message
+    # Predicción
+    prediction = model.predict(data)[0]
+    open_prob, closed_prob = prediction[0], prediction[1]
 
+    # Mostrar probabilidades
+    st.write(f"Probabilidad Mano Abierta: {open_prob:.2f}")
+    st.write(f"Probabilidad Mano Cerrada: {closed_prob:.2f}")
 
+    # Generar salida aleatoria
+    if open_prob > closed_prob:
+        # Mano abierta: letra aleatoria
+        letter = random.choice(string.ascii_uppercase)
+        st.header(f"✋ Mano Abierta → Letra: {letter}")
+    else:
+        # Mano cerrada: número aleatorio
+        number = random.randint(1, 100)
+        st.header(f"✊ Mano Cerrada → Número: {number}")
 
-st.title("MQTT Control")
-
-if st.button('ON'):
-    act1="ON"
-    client1= paho.Client("NicoRaw")                           
-    client1.on_publish = on_publish                          
-    client1.connect(broker,port)  
-    message =json.dumps({"Act1":act1})
-    ret= client1.publish("LuzNicoRaw", message)
- 
-    #client1.subscribe("Sensores")
-    
-    
-else:
-    st.write('')
-
-if st.button('OFF'):
-    act1="OFF"
-    client1= paho.Client("NicoRaw")                           
-    client1.on_publish = on_publish                          
-    client1.connect(broker,port)  
-    message =json.dumps({"Act1":act1})
-    ret= client1.publish("LuzNicoRaw", message)
-  
-    
-else:
-    st.write('')
-
-values = st.slider('Selecciona el rango de valores',0.0, 100.0)
-st.write('Values:', values)
-
-if st.button('Enviar valor analógico'):
-    client1= paho.Client("NicoRaw")                           
-    client1.on_publish = on_publish                          
-    client1.connect(broker,port)   
-    message =json.dumps({"Analog": float(values)})
-    ret= client1.publish("MotorNicoRaw", message)
-    
- 
-else:
-    st.write('')
-
-
-
-
+    # Limpieza de archivos temporales (opcional)
+    # Aquí podrías eliminar imágenes temporales si las guardaste en disco
