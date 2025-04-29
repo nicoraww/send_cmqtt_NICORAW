@@ -34,6 +34,30 @@ def set_theme_css():
         fg = '#000000'
     st.markdown(f"""
     <style>
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
+            background-color: {bg} !important;
+            color: {fg} !important;
+        }
+        [data-testid="stAppViewContainer"] .main {
+            background-color: {bg} !important;
+        }
+        .stButton > button {{
+            background-color: {fg} !important;
+            color: {bg} !important;
+            border: 1px solid {fg} !important;
+        }}
+        .stSlider > div {{ color: {fg} !important; }}
+        /* Inputs and text areas */
+        .stTextInput > div > input, .stTextArea > div > textarea, .stNumberInput > div > input {{
+            background-color: {bg} !important;
+            color: {fg} !important;
+            border: 1px solid {fg} !important;
+        }}
+        /* Hide default Streamlit background to avoid override */
+        .css-18e3th9 {{ background-color: {bg} !important; }}
+    </style>
+    """, unsafe_allow_html=True)
+    <style>
         body {{ background-color: {bg}; color: {fg}; }}
         .stButton > button {{ background-color: {fg}; color: {bg}; border: 1px solid {fg}; }}
         .stSlider > div {{ color: {fg}; }}
