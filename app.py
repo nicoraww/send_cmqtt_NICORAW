@@ -34,33 +34,21 @@ def set_theme_css():
         fg = '#000000'
     st.markdown(f"""
     <style>
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {{
             background-color: {bg} !important;
             color: {fg} !important;
-        }
-        [data-testid="stAppViewContainer"] .main {
-            background-color: {bg} !important;
-        }
+        }}
         .stButton > button {{
             background-color: {fg} !important;
             color: {bg} !important;
             border: 1px solid {fg} !important;
         }}
         .stSlider > div {{ color: {fg} !important; }}
-        /* Inputs and text areas */
         .stTextInput > div > input, .stTextArea > div > textarea, .stNumberInput > div > input {{
             background-color: {bg} !important;
             color: {fg} !important;
             border: 1px solid {fg} !important;
         }}
-        /* Hide default Streamlit background to avoid override */
-        .css-18e3th9 {{ background-color: {bg} !important; }}
-    </style>
-    """, unsafe_allow_html=True)
-    <style>
-        body {{ background-color: {bg}; color: {fg}; }}
-        .stButton > button {{ background-color: {fg}; color: {bg}; border: 1px solid {fg}; }}
-        .stSlider > div {{ color: {fg}; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -70,21 +58,21 @@ set_theme_css()
 # Título
 st.title("MQTT Control")
 
-# Crear cliente MQTT
+# Función para publicar por MQTT
 def mqtt_publish(topic, payload):
     client = paho.Client()
     client.on_publish = on_publish
     client.connect("157.230.214.127", 1883)
     client.publish(topic, json.dumps(payload))
 
-# Botones ON/OFF
-col1, col2 = st.columns(2)
-with col1:
+# Botones ON/OFF en columnas
+t1, t2 = st.columns(2)
+with t1:
     if st.button('ON'):
         st.session_state.theme = 'light'
         set_theme_css()
         mqtt_publish('LuzNicoRaw', {"Act1": "ON"})
-with col2:
+with t2:
     if st.button('OFF'):
         st.session_state.theme = 'dark'
         set_theme_css()
@@ -94,10 +82,7 @@ with col2:
 value = st.slider('Selecciona valor analógico', 0.0, 100.0, 50.0)
 st.write('Valor:', value)
 
-# Enviar valor
-def send_analog():
+# Botón para enviar valor analógico
+if st.button('Enviar valor analógico'):
     mqtt_publish('MotorNicoRaw', {"Analog": float(value)})
     st.write('Valor enviado.')
-
-if st.button('Enviar valor analógico'):
-    send_analog()
