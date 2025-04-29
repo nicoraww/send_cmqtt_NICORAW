@@ -87,10 +87,13 @@ if st.button('Enviar valor analógico'):
     mqtt_publish('MotorNicoRaw', {"Analog": float(value)})
     st.write('Valor enviado.')
     # Guardar en historial
-'timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-st.session_state.history.append({"timestamp": timestamp, "value": value})
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state.history.append({"timestamp": timestamp, "value": value})
 
 # Mostrar historial de valores enviados
+if st.session_state.history:
+    st.subheader('Historial de valores analógicos enviados')
+    st.table(st.session_state.history)
 if st.session_state.history:
     st.subheader('Historial de valores analógicos enviados')
     st.table(st.session_state.history)
